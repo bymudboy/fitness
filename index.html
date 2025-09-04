@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAEPSaúde</title>
+    <link rel="stylesheet" href="_css/style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div id="profile-section">
+                <div class="logo">
+                    <img src="_imagens/saepsaude.png" alt="Logo SAEPSaúde" id="profile-img">
+                </div>
+                <h1 id="profile-name">SAEPSaúde</h1>
+                <div class="stats">
+                    <div class="stat-item">
+                        <h3 id="stats-atividades">0</h3>
+                        <p>Qtd. Atividades</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3 id="stats-calorias">0</h3>
+                        <p>Qtd. Calorias</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="activity-section">
+                <button id="btn-atividade" class="activity-button" disabled>
+                    <i class="fas fa-chart-line"></i>
+                    <h4>Atividade</h4>
+                </button>
+            </div>
+            <hr style="width:100%; border-color: #555;">
+
+            <footer class="rodape">
+                <hr style="width:100%; border-color: #555; margin-bottom: 15px;">
+                <p>SAEPSaúde</p>
+                <div class="social-icons">
+                    <img src="_icones/instagram.svg" alt="Instagram">
+                    <img src="_icones/twitter.svg" alt="Twitter">
+                    <img src="_icones/tiktok.svg" alt="TikTok">
+                </div>
+                <p class="copyright">Copyright - 2025/2026</p>
+            </footer>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <div class="top-bar">
+                    <button id="login-logout-button" class="login-button">Login</button>
+                </div>
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <button class="tab-button active" data-type="Corrida">Corrida</button>
+                        <button class="tab-button" data-type="Caminhada">Caminhada</button>
+                        <button class="tab-button" data-type="Trilha">Trilha</button>
+                    </div>
+                </div>
+            </header>
+            
+            <section id="feed-section" class="activity-feed">
+                <div id="activity-list"></div>
+            </section>
+            
+            <section id="create-activity-section" class="hidden">
+                <div class="form-container">
+                    <h2>Crie sua atividade</h2>
+                    <form id="create-activity-form">
+                        <div class="form-group">
+                            <label for="tipo">Tipo da atividade</label>
+                            <input type="text" id="tipo" placeholder="Ex: Caminhada" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="distancia">Distância percorrida (metros)</label>
+                            <input type="number" id="distancia" placeholder="Ex: 1000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="duracao">Duração da atividade (minutos)</label>
+                            <input type="number" id="duracao" placeholder="Ex: 120" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="calorias">Quantidade de Calorias</label>
+                            <input type="number" id="calorias" placeholder="Ex: 300" required>
+                        </div>
+                        <button type="submit" class="submit-button">Criar Atividade</button>
+                    </form>
+                </div>
+                <div id="user-activities-section">
+                    <h2>Suas Atividades</h2>
+                    <div id="user-activity-list"></div>
+                </div>
+            </section>
+            
+            <div class="pagination">
+                <button id="prev-button" class="prev-button" disabled>Anterior</button>
+                <div id="page-numbers" class="page-numbers">
+                    <button class="page-num active">1</button>
+                    <button class="page-num">2</button>
+                    <button class="page-num">3</button>
+                </div>
+                <button id="next-button" class="next-button">Próximo</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close-button" id="close-modal-button">&times;</button>
+            <h2>Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                    <p class="error-message"></p>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" required>
+                    <p class="error-message"></p>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-button" class="cancel-button">Cancelar</button>
+                    <button type="submit" class="submit-button">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="_javascript/script.js"></script>
+</body>
+</html>

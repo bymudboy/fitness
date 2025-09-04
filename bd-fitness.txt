@@ -1,0 +1,152 @@
+-- Cria o banco de dados se ele não existir
+CREATE DATABASE IF NOT EXISTS fitness;
+
+-- Usa o banco de dados saepsaude
+USE fitness;
+
+-- Remove as tabelas se elas já existirem para evitar conflitos.
+-- A ordem é importante para não violar as chaves estrangeiras.
+DROP TABLE IF EXISTS tb_curtida;
+DROP TABLE IF EXISTS tb_comentario;
+DROP TABLE IF EXISTS tb_atividade;
+DROP TABLE IF EXISTS tb_usuarios;
+
+-- -----------------------------------------------------
+-- Tabela `tb_usuarios`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS tb_usuarios (
+id_usuario INT NOT NULL AUTO_INCREMENT,
+nome VARCHAR(255) NOT NULL,
+email VARCHAR(255) NOT NULL,
+nome_usuario VARCHAR(100) NOT NULL,
+imagem VARCHAR(255) NULL,
+senha VARCHAR(255) NOT NULL,
+createdAt DATETIME NOT NULL,
+updatedAt DATETIME NOT NULL,
+PRIMARY KEY (id_usuario),
+UNIQUE INDEX email_UNIQUE (email ASC),
+UNIQUE INDEX nome_usuario_UNIQUE (nome_usuario ASC)
+);
+
+-- -----------------------------------------------------
+
+-- Tabela `tb_atividade`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS tb_atividade (
+id_atividade INT NOT NULL AUTO_INCREMENT,
+tipo_atividade VARCHAR(100) NOT NULL,
+distancia_percorrida INT NOT NULL,
+duracao_atividade INT NOT NULL COMMENT 'Duração em minutos',
+quantidade_calorias INT NOT NULL,
+createdAt DATETIME NOT NULL,
+updatedAt DATETIME NOT NULL,
+id_usuario INT NOT NULL,
+PRIMARY KEY (id_atividade),
+INDEX fk_atividade_usuario_idx (id_usuario ASC),
+CONSTRAINT fk_atividade_usuario
+FOREIGN KEY (id_usuario)
+REFERENCES tb_usuarios (id_usuario)
+ON DELETE CASCADE
+ON UPDATE NO ACTION
+);
+
+-- -----------------------------------------------------
+-- Tabela `tb_comentario`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS tb_comentario (
+id_comentario INT NOT NULL AUTO_INCREMENT,
+texto TEXT NOT NULL,
+createdAt DATETIME NOT NULL,
+updatedAt DATETIME NOT NULL,
+id_usuario INT NOT NULL,
+
+id_atividade INT NOT NULL,
+PRIMARY KEY (id_comentario),
+INDEX fk_comentario_usuario_idx (id_usuario ASC),
+INDEX fk_comentario_atividade_idx (id_atividade ASC),
+CONSTRAINT fk_comentario_usuario
+FOREIGN KEY (id_usuario)
+REFERENCES tb_usuarios (id_usuario)
+ON DELETE CASCADE
+ON UPDATE NO ACTION,
+CONSTRAINT fk_comentario_atividade
+FOREIGN KEY (id_atividade)
+REFERENCES tb_atividade (id_atividade)
+ON DELETE CASCADE
+ON UPDATE NO ACTION
+);
+
+-- -----------------------------------------------------
+-- Tabela `tb_curtida`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS tb_curtida (
+id_curtida INT NOT NULL AUTO_INCREMENT,
+id_usuario INT NOT NULL,
+id_atividade INT NOT NULL,
+createdAt DATETIME NOT NULL,
+PRIMARY KEY (id_curtida),
+INDEX fk_curtida_usuario_idx (id_usuario ASC),
+INDEX fk_curtida_atividade_idx (id_atividade ASC),
+CONSTRAINT fk_curtida_usuario
+FOREIGN KEY (id_usuario)
+
+REFERENCES tb_usuarios (id_usuario)
+ON DELETE CASCADE
+ON UPDATE NO ACTION,
+CONSTRAINT fk_curtida_atividade
+FOREIGN KEY (id_atividade)
+REFERENCES tb_atividade (id_atividade)
+ON DELETE CASCADE
+ON UPDATE NO ACTION
+);
+
+-- -----------------------------------------------------
+-- Inserção de Dados na Tabela `tb_usuarios`
+-- -----------------------------------------------------
+INSERT INTO tb_usuarios (id_usuario, nome, email, nome_usuario,
+imagem, senha, createdAt, updatedAt) VALUES
+(1, 'saepsaude', 'saepsaude@email.com', 'saepsaude',
+'saepsaude.png', '123456', '2024-08-14 18:56:33.531 +00:00',
+'2024-08-14 18:56:33.531 +00:00'),
+(2, 'usuario1', 'usuario1@email.com', 'usuario01',
+'usuario01.jpg', '123456', '2024-08-14 18:58:07.862 +00:00',
+'2024-08-14 18:58:07.862 +00:00'),
+(3, 'usuario2', 'usuario2@email.com', 'usuario02',
+'usuario02.jpg', '123456', '2024-08-14 18:58:21.651 +00:00',
+'2024-08-14 18:58:21.651 +00:00'),
+(4, 'usuario3', 'usuario3@email.com', 'usuario03',
+'usuario03.jpg', '123456', '2024-08-14 18:58:35.090 +00:00',
+'2024-08-14 18:58:35.090 +00:00');
+
+-- -----------------------------------------------------
+-- Inserção de Dados na Tabela `tb_atividade`
+-- -----------------------------------------------------
+
+INSERT INTO tb_atividade (id_atividade, tipo_atividade,
+distancia_percorrida, duracao_atividade, quantidade_calorias,
+createdAt, updatedAt, id_usuario) VALUES
+
+(3,'caminhada',5000,70,340,'2024-08-14 19:15:11.453
++00:00','2024-08-14 19:15:11.453 +00:00',1),
+(4,'caminhada',4000,40,140,'2024-08-14 19:15:54.438
++00:00','2024-08-14 19:15:54.438 +00:00',2),
+(5,'caminhada',3000,30,140,'2024-08-14 19:16:09.149
++00:00','2024-08-14 19:16:09.149 +00:00',3),
+(6,'caminhada',3500,35,180,'2024-08-14 19:16:24.636
++00:00','2024-08-14 19:16:24.636 +00:00',4),
+(7,'corrida',6500,40,280,'2024-08-14 19:17:30.973 +00:00','2024-
+08-14 19:17:30.973 +00:00',1),
+(8,'corrida',5500,50,220,'2024-08-14 19:17:47.106 +00:00','2024-
+08-14 19:17:47.106 +00:00',2),
+(9,'corrida',10000,24,420,'2024-08-14 19:18:18.334
++00:00','2024-08-14 19:18:18.334 +00:00',3),
+(10,'corrida',5000,23,320,'2024-08-14 19:18:41.149
++00:00','2024-08-14 19:18:41.149 +00:00',4),
+(11,'trilha',2000,40,420,'2024-08-14 19:20:24.202 +00:00','2024-
+08-14 19:20:24.202 +00:00',1),
+(12,'trilha',3000,45,470,'2024-08-14 19:20:43.688 +00:00','2024-
+08-14 19:20:43.688 +00:00',2),
+(13,'trilha',3500,45,420,'2024-08-14 19:26:04.128 +00:00','2024-
+08-14 19:26:04.128 +00:00',3),
+(14,'trilha',5000,70,570,'2024-08-14 19:26:23.865 +00:00','2024-
+08-14 19:26:23.865 +00:00',4);
