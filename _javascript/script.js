@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = 'http://localhost:3000';
     let currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
     let currentPage = 1;
-    // ALTERAÇÃO AQUI: Deixamos o filtro inicial vazio para carregar todas as atividades.
     let currentFilter = '';
 
     // Elementos do DOM
@@ -16,9 +15,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelButton = document.getElementById('cancel-button');
     const loginForm = document.getElementById('login-form');
     const btnAtividade = document.getElementById('btn-atividade');
+    const createActivityForm = document.getElementById('create-activity-form');
+    const feedSection = document.getElementById('feed-section');
+    const createActivitySection = document.getElementById('create-activity-section');
+    const prevButton = document.getElementById('prev-button');
+    const nextButton = document.getElementById('next-button');
+    const pageNumbersContainer = document.getElementById('page-numbers');
 
-      // função que eu criei para buscar e exibir as estatísticas gerais *
-    const fetchAndDisplayCompanyStats = async () => {
+
+    // Elementos do Perfil e Stats
+    const profileImg = document.getElementById('profile-img');
+    const profileName = document.getElementById('profile-name');
+    const statsAtividades = document.getElementById('stats-atividades');
+    const statsCalorias = document.getElementById('stats-calorias');
+
+    // --- FUNÇÕES DE COMUNICAÇÃO COM A API ---
+
+    // Função para buscar e exibir as estatísticas gerais
+    const fetchGeneralStats = async () => {
         try {
             const response = await fetch(`${apiUrl}/stats`);
             if (!response.ok) {
@@ -29,39 +43,30 @@ document.addEventListener('DOMContentLoaded', () => {
             statsCalorias.textContent = stats.qtd_calorias;
         } catch (error) {
             console.error("Falha ao carregar as estatísticas:", error);
-            // Opcional: manter os valores em 0 em caso de erro.
             statsAtividades.textContent = '0';
             statsCalorias.textContent = '0';
         }
     };
 
-    // Elementos do Perfil e Stats
-    const profileImg = document.getElementById('profile-img');
-    const profileName = document.getElementById('profile-name');
-    const statsAtividades = document.getElementById('stats-atividades');
-    const statsCalorias = document.getElementById('stats-calorias');
+    // Função para buscar e exibir as estatísticas do usuário
+    const fetchUserStats = async (userId) => {
+        try {
+            const response = await fetch(`${apiUrl}/usuarios/${userId}/stats`);
+            const data = await response.json();
+            statsAtividades.textContent = data.qtd_atividades || 0;
+            statsCalorias.textContent = data.qtd_calorias || 0;
+        } catch (error) {
+            console.error('Erro ao buscar estatísticas do usuário:', error);
+            statsAtividades.textContent = '0';
+            statsCalorias.textContent = '0';
+        }
+    };
 
-    // Seções principais
-    const feedSection = document.getElementById('feed-section');
-    const createActivitySection = document.getElementById('create-activity-section');
-    const createActivityForm = document.getElementById('create-activity-form');
-
-    // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---
-
-    const updateUIForLogin = () => {
+    // Função PRINCIPAL que decide qual estatística buscar
+    const updateStatsUI = () => {
         if (currentUser) {
-            loginLogoutButton.textContent = 'Logout';
-            btnAtividade.disabled = false;
-            btnAtividade.classList.add('enabled');
-            profileImg.src = `_imagens/${currentUser.foto_perfil}`;
-            profileName.textContent = currentUser.nome_usuario;
             fetchUserStats(currentUser.id_usuario);
         } else {
-            loginLogoutButton.textContent = 'Login';
-            btnAtividade.disabled = true;
-            btnAtividade.classList.remove('enabled', 'active');
-            profileImg.src = '_imagens/saepsaude.png';
-            profileName.textContent = 'SAEPSaúde';
             fetchGeneralStats();
         }
     };
@@ -75,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activities.forEach(activity => {
             const activityElement = document.createElement('div');
             activityElement.className = 'activity-item';
-            
+
             const date = new Date(activity.data_atividade);
             const formattedDate = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} - ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`;
 
@@ -113,13 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // --- FUNÇÕES DE COMUNICAÇÃO COM A API ---
-
     const fetchAndRenderActivities = async (page = 1, filter = '') => {
         try {
             const response = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}`);
             if (!response.ok) throw new Error('Falha ao buscar atividades');
             const activities = await response.json();
+            
+            updateStatsUI();
             renderActivities(activities);
         } catch (error) {
             console.error('Erro ao buscar atividades:', error);
@@ -127,44 +132,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const fetchGeneralStats = async () => {
-        try {
-            const response = await fetch(`${apiUrl}/stats`);
-            const data = await response.json();
-            statsAtividades.textContent = data.qtd_atividades || 0;
-            statsCalorias.textContent = data.qtd_calorias || 0;
-        } catch (error) {
-            console.error('Erro ao buscar estatísticas gerais:', error);
-        }
-    };
+    // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---
 
-    const fetchUserStats = async (userId) => {
-        try {
-            const response = await fetch(`${apiUrl}/usuarios/${userId}/stats`);
-            const data = await response.json();
-            statsAtividades.textContent = data.qtd_atividades || 0;
-            statsCalorias.textContent = data.qtd_calorias || 0;
-        } catch (error) {
-            console.error('Erro ao buscar estatísticas do usuário:', error);
+    const updateUIForLogin = () => {
+        if (currentUser) {
+            loginLogoutButton.textContent = 'Logout';
+            btnAtividade.disabled = false;
+            btnAtividade.classList.add('enabled');
+            profileImg.src = `_imagens/${currentUser.foto_perfil}`;
+            profileName.textContent = currentUser.nome_usuario;
+        } else {
+            loginLogoutButton.textContent = 'Login';
+            btnAtividade.disabled = true;
+            btnAtividade.classList.remove('enabled', 'active');
+            profileImg.src = '_imagens/saepsaude.png';
+            profileName.textContent = 'SAEPSaúde';
         }
+        updateStatsUI();
     };
 
     // --- EVENT LISTENERS ---
 
     loginLogoutButton.addEventListener('click', () => {
-        if (currentUser) { // Processo de Logout
+        if (currentUser) {
             sessionStorage.removeItem('currentUser');
             currentUser = null;
             updateUIForLogin();
             feedSection.classList.remove('hidden');
             createActivitySection.classList.add('hidden');
             btnAtividade.classList.remove('active');
-            fetchAndRenderActivities(1, ''); // Volta a carregar todas as atividades
-        } else { // Abrir modal de Login
+            fetchAndRenderActivities(1, '');
+        } else {
             loginModal.classList.remove('hidden');
         }
     });
-    
+
     closeModalButton.addEventListener('click', () => loginModal.classList.add('hidden'));
     cancelButton.addEventListener('click', () => loginModal.classList.add('hidden'));
 
@@ -185,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUIForLogin();
                 loginModal.classList.add('hidden');
                 loginForm.reset();
+                fetchAndRenderActivities(1, currentFilter);
             } else {
                 alert(data.erro || "Falha no login");
             }
@@ -203,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchAndRenderActivities(currentPage, currentFilter);
         });
     });
-    
+
     btnAtividade.addEventListener('click', () => {
         if(currentUser) {
             const isFeedVisible = !feedSection.classList.contains('hidden');
@@ -248,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 createActivitySection.classList.add('hidden');
                 btnAtividade.classList.remove('active');
                 fetchAndRenderActivities(1, currentFilter);
-                fetchAndDisplayCompanyStats(); // linha que eu adicionei *
             } else {
                 const data = await response.json();
                 alert(data.erro || "Falha ao criar atividade.");
@@ -260,9 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- INICIALIZAÇÃO ---
-    
+
     updateUIForLogin();
-    fetchAndDisplayCompanyStats(); // linha que eu adicionei *
-    // A variável 'currentFilter' está vazia ('') na inicialização, então esta chamada busca todas as atividades.
     fetchAndRenderActivities(currentPage, currentFilter);
 });
