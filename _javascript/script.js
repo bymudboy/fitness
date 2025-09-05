@@ -17,6 +17,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const btnAtividade = document.getElementById('btn-atividade');
 
+      // função que eu criei para buscar e exibir as estatísticas gerais *
+    const fetchAndDisplayCompanyStats = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/stats`);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar estatísticas');
+            }
+            const stats = await response.json();
+            statsAtividades.textContent = stats.qtd_atividades;
+            statsCalorias.textContent = stats.qtd_calorias;
+        } catch (error) {
+            console.error("Falha ao carregar as estatísticas:", error);
+            // Opcional: manter os valores em 0 em caso de erro.
+            statsAtividades.textContent = '0';
+            statsCalorias.textContent = '0';
+        }
+    };
+
     // Elementos do Perfil e Stats
     const profileImg = document.getElementById('profile-img');
     const profileName = document.getElementById('profile-name');
@@ -230,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 createActivitySection.classList.add('hidden');
                 btnAtividade.classList.remove('active');
                 fetchAndRenderActivities(1, currentFilter);
+                fetchAndDisplayCompanyStats(); // linha que eu adicionei *
             } else {
                 const data = await response.json();
                 alert(data.erro || "Falha ao criar atividade.");
@@ -243,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZAÇÃO ---
     
     updateUIForLogin();
+    fetchAndDisplayCompanyStats(); // linha que eu adicionei *
     // A variável 'currentFilter' está vazia ('') na inicialização, então esta chamada busca todas as atividades.
     fetchAndRenderActivities(currentPage, currentFilter);
 });
