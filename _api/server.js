@@ -39,8 +39,8 @@ app.post("/login", async (req, res) => {
 // Rota: listar todas as atividades
 app.get("/atividades", async (req, res) => {
     const page = parseInt(req.query.page) || 1;
-    const limit = 4;
-    const offset = (page - 1) * limit;
+    const perPage = parseInt(req.query.perPage) || 4;
+    const offset = (page - 1) * perPage;
     const tipo = req.query.tipo;
 
     let query = `
@@ -62,13 +62,15 @@ app.get("/atividades", async (req, res) => {
     `;
     const queryParams = [];
 
-    if (tipo) {
+    // O filtro 'all' agora é tratado corretamente.
+    // A cláusula WHERE só é adicionada se o tipo for válido.
+    if (tipo && tipo !== 'all') {
         query += " WHERE a.tipo_atividade = ?";
         queryParams.push(tipo);
     }
 
     query += " ORDER BY a.createdAt DESC LIMIT ? OFFSET ?";
-    queryParams.push(limit, offset);
+    queryParams.push(perPage, offset);
 
     try {
         const [results] = await pool.query(query, queryParams);

@@ -1,11 +1,10 @@
-// /_javascript/script.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = 'http://localhost:3000';
     let currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
     let currentPage = 1;
     let currentFilter = '';
-    const activitiesPerPage = 4; // Define o número de atividades por página
+    const activitiesPerPageSelect = document.getElementById('items-per-page-select');
+    let activitiesPerPage = parseInt(activitiesPerPageSelect.value);
 
     // Elementos do DOM
     const activityListContainer = document.getElementById('activity-list');
@@ -119,79 +118,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-// Função para renderizar a paginação
-const renderPagination = (totalActivities) => {
-    pageNumbersContainer.innerHTML = '';
-    const totalPages = Math.ceil(totalActivities / activitiesPerPage);
-    const maxPagesToShow = 5;
+    // Função para renderizar a paginação
+    const renderPagination = (totalActivities) => {
+        pageNumbersContainer.innerHTML = '';
+        const totalPages = Math.ceil(totalActivities / activitiesPerPage);
+        const maxPagesToShow = 5;
 
-    if (totalPages <= 1) {
-        prevButton.style.display = 'none';
-        nextButton.style.display = 'none';
-        return;
-    } else {
-        prevButton.style.display = 'block';
-        nextButton.style.display = 'block';
-    }
-
-    prevButton.disabled = currentPage === 1;
-    nextButton.disabled = currentPage >= totalPages;
-
-    const start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    const end = Math.min(totalPages, start + maxPagesToShow - 1);
-
-    // Adiciona o botão da primeira página
-    if (start > 1) {
-        pageNumbersContainer.appendChild(createPageButton(1));
-    }
-
-    // Adiciona o botão '...' se houver um salto grande
-    if (start > 2) {
-        const ellipsis = document.createElement('button');
-        ellipsis.className = 'page-ellipsis';
-        ellipsis.textContent = '...';
-        ellipsis.disabled = true;
-        pageNumbersContainer.appendChild(ellipsis);
-    }
-
-    // Adiciona os botões de página dinâmicos
-    for (let i = start; i <= end; i++) {
-        pageNumbersContainer.appendChild(createPageButton(i));
-    }
-
-    // Adiciona o botão '...' se houver um salto grande
-    if (end < totalPages - 1) {
-        const ellipsis = document.createElement('button');
-        ellipsis.className = 'page-ellipsis';
-        ellipsis.textContent = '...';
-        ellipsis.disabled = true;
-        pageNumbersContainer.appendChild(ellipsis);
-    }
-    
-    // Adiciona o botão da última página
-    if (end < totalPages) {
-        pageNumbersContainer.appendChild(createPageButton(totalPages));
-    }
-
-    // Função auxiliar para criar os botões (sem alterações)
-    function createPageButton(pageNumber) {
-        const pageButton = document.createElement('button');
-        pageButton.className = 'page-num';
-        pageButton.textContent = pageNumber;
-        if (pageNumber === currentPage) {
-            pageButton.classList.add('active');
+        if (totalPages <= 1) {
+            prevButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            return;
+        } else {
+            prevButton.style.display = 'block';
+            nextButton.style.display = 'block';
         }
-        pageButton.addEventListener('click', () => {
-            if (!currentUser) {
-                showMessage('Você precisa estar logado para navegar entre as páginas.', 'error');
-                return;
+
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage >= totalPages;
+
+        const start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+        const end = Math.min(totalPages, start + maxPagesToShow - 1);
+
+        // Adiciona o botão da primeira página
+        if (start > 1) {
+            pageNumbersContainer.appendChild(createPageButton(1));
+        }
+
+        // Adiciona o botão '...' se houver um salto grande
+        if (start > 2) {
+            const ellipsis = document.createElement('button');
+            ellipsis.className = 'page-ellipsis';
+            ellipsis.textContent = '...';
+            ellipsis.disabled = true;
+            pageNumbersContainer.appendChild(ellipsis);
+        }
+
+        // Adiciona os botões de página dinâmicos
+        for (let i = start; i <= end; i++) {
+            pageNumbersContainer.appendChild(createPageButton(i));
+        }
+
+        // Adiciona o botão '...' se houver um salto grande
+        if (end < totalPages - 1) {
+            const ellipsis = document.createElement('button');
+            ellipsis.className = 'page-ellipsis';
+            ellipsis.textContent = '...';
+            ellipsis.disabled = true;
+            pageNumbersContainer.appendChild(ellipsis);
+        }
+
+        // Adiciona o botão da última página
+        if (end < totalPages) {
+            pageNumbersContainer.appendChild(createPageButton(totalPages));
+        }
+
+        // Função auxiliar para criar os botões (sem alterações)
+        function createPageButton(pageNumber) {
+            const pageButton = document.createElement('button');
+            pageButton.className = 'page-num';
+            pageButton.textContent = pageNumber;
+            if (pageNumber === currentPage) {
+                pageButton.classList.add('active');
             }
-            currentPage = pageNumber;
-            fetchAndRenderActivities(currentPage, currentFilter);
-        });
-        return pageButton;
-    }
-};
+            pageButton.addEventListener('click', () => {
+                if (!currentUser) {
+                    showMessage('Você precisa estar logado para navegar entre as páginas.', 'error');
+                    return;
+                }
+                currentPage = pageNumber;
+                fetchAndRenderActivities(currentPage, currentFilter);
+            });
+            return pageButton;
+        }
+    };
 
     const renderActivities = (activities) => {
         activityListContainer.innerHTML = '';
@@ -210,6 +209,22 @@ const renderPagination = (totalActivities) => {
 
             const buttonClass = !currentUser ? 'disabled-btn' : '';
 
+            const duracao = activity.duracao_min;
+            let duracaoFormatada;
+
+            if (duracao >= 60) {
+                const horas = Math.floor(duracao / 60);
+                const minutosRestantes = duracao % 60;
+
+                if (minutosRestantes > 0) {
+                    duracaoFormatada = `${horas}h ${minutosRestantes}min`;
+                } else {
+                    duracaoFormatada = `${horas}h`;
+                }
+            } else {
+                duracaoFormatada = `${duracao}min`;
+            }
+
             activityElement.innerHTML = `
                 <div class="activity-header">
                     <h4>${activity.tipo}</h4>
@@ -226,7 +241,7 @@ const renderPagination = (totalActivities) => {
                             <div class="stat-label">Distância</div>
                         </div>
                         <div>
-                            <div class="stat-value">${activity.duracao_min} min</div>
+                            <div class="stat-value">${duracaoFormatada}</div>
                             <div class="stat-label">Duração</div>
                         </div>
                         <div>
@@ -258,14 +273,14 @@ const renderPagination = (totalActivities) => {
         });
     };
 
-    const fetchAndRenderActivities = async (page = 1, filter = '') => {
+    const fetchAndRenderActivities = async (page = 1, filter = '', perPage = activitiesPerPage) => {
         try {
             const totalResponse = await fetch(`${apiUrl}/atividades/total?tipo=${filter}`);
             const totalData = await totalResponse.json();
             const totalActivities = totalData.total;
             renderPagination(totalActivities);
 
-            const activitiesResponse = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}`);
+            const activitiesResponse = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}&perPage=${perPage}`);
             if (!activitiesResponse.ok) throw new Error('Falha ao buscar atividades');
             const activities = await activitiesResponse.json();
 
@@ -345,7 +360,7 @@ const renderPagination = (totalActivities) => {
 
         } catch (error) {
             console.error("Erro de comunicação com o servidor:", error);
-            
+
             if (isCurrentlyLiked) {
                 heartIcon.classList.remove('far');
                 heartIcon.classList.add('fas', 'liked');
@@ -357,7 +372,7 @@ const renderPagination = (totalActivities) => {
         }
     });
 
-   // Listener para o botão de comentário e envio do formulário
+    // Listener para o botão de comentário e envio do formulário
     activityListContainer.addEventListener('click', async (event) => {
         const commentButton = event.target.closest('.comment-btn');
         const submitButton = event.target.closest('.btn-comment-submit');
@@ -420,7 +435,7 @@ const renderPagination = (totalActivities) => {
                     commentInput.value = '';
                     const commentCountSpan = commentsSection.closest('.activity-item').querySelector('.comment-count');
                     commentCountSpan.textContent = parseInt(commentCountSpan.textContent) + 1;
-                    
+
                     const commentsList = commentsSection.querySelector('.comments-list');
                     fetchAndRenderComments(activityId, commentsList);
 
@@ -477,6 +492,18 @@ const renderPagination = (totalActivities) => {
 
     // --- EVENT LISTENERS ---
 
+    activitiesPerPageSelect.addEventListener('change', (event) => {
+    if (!currentUser) {
+        showMessage('Você precisa estar logado para mudar o número de itens por página.', 'error');
+        // Restaura o valor anterior se o usuário não estiver logado
+        event.target.value = activitiesPerPage;
+        return;
+    }
+    activitiesPerPage = parseInt(event.target.value);
+    currentPage = 1; // Volta para a primeira página ao mudar o filtro
+    fetchAndRenderActivities(currentPage, currentFilter, activitiesPerPage);
+});
+
     loginLogoutButton.addEventListener('click', () => {
         if (currentUser) {
             sessionStorage.removeItem('currentUser');
@@ -495,62 +522,62 @@ const renderPagination = (totalActivities) => {
     cancelButton.addEventListener('click', () => loginModal.classList.add('hidden'));
 
     // Listener para o formulário de login
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const emailInput = document.getElementById('email');
-    const senhaInput = document.getElementById('senha');
-    
-    // Limpa erros anteriores
-    emailInput.closest('.form-group').classList.remove('error');
-    senhaInput.closest('.form-group').classList.remove('error');
-    document.querySelector('#email + .error-message').textContent = '';
-    document.querySelector('#senha + .error-message').textContent = '';
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('email');
+        const senhaInput = document.getElementById('senha');
 
-    const email = emailInput.value;
-    const senha = senhaInput.value;
-    
-    // Validação client-side para campos vazios
-    if (!email || !senha) {
-        if (!email) {
-            emailInput.closest('.form-group').classList.add('error');
-            document.querySelector('#email + .error-message').textContent = 'E-mail obrigatório';
-        }
-        if (!senha) {
-            senhaInput.closest('.form-group').classList.add('error');
-            document.querySelector('#senha + .error-message').textContent = 'Senha obrigatória';
-        }
-        return; // Impede a submissão se algum campo estiver vazio
-    }
+        // Limpa erros anteriores
+        emailInput.closest('.form-group').classList.remove('error');
+        senhaInput.closest('.form-group').classList.remove('error');
+        document.querySelector('#email + .error-message').textContent = '';
+        document.querySelector('#senha + .error-message').textContent = '';
 
-    try {
-        const response = await fetch(`${apiUrl}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, senha })
-        });
-        const data = await response.json();
+        const email = emailInput.value;
+        const senha = senhaInput.value;
 
-        if (response.ok) {
-            currentUser = data;
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateUIForLogin();
-            loginModal.classList.add('hidden');
-            loginForm.reset();
-            fetchAndRenderActivities(1, currentFilter);
-        } else {
-            // Lógica de erro para credenciais incorretas (erro do servidor)
-            const errorMessageText = data.erro || "Falha no login";
-            
-            emailInput.closest('.form-group').classList.add('error');
-            senhaInput.closest('.form-group').classList.add('error');
-            document.querySelector('#email + .error-message').textContent = errorMessageText;
-            document.querySelector('#senha + .error-message').textContent = errorMessageText;
+        // Validação client-side para campos vazios
+        if (!email || !senha) {
+            if (!email) {
+                emailInput.closest('.form-group').classList.add('error');
+                document.querySelector('#email + .error-message').textContent = 'E-mail obrigatório';
+            }
+            if (!senha) {
+                senhaInput.closest('.form-group').classList.add('error');
+                document.querySelector('#senha + .error-message').textContent = 'Senha obrigatória';
+            }
+            return; // Impede a submissão se algum campo estiver vazio
         }
-    } catch (error) {
-        console.error("Erro no login:", error);
-        showMessage("Ocorreu um erro ao tentar fazer login. Verifique sua conexão.", 'error');
-    }
-});
+
+        try {
+            const response = await fetch(`${apiUrl}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, senha })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser = data;
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUIForLogin();
+                loginModal.classList.add('hidden');
+                loginForm.reset();
+                fetchAndRenderActivities(1, currentFilter);
+            } else {
+                // Lógica de erro para credenciais incorretas (erro do servidor)
+                const errorMessageText = data.erro || "Falha no login";
+
+                emailInput.closest('.form-group').classList.add('error');
+                senhaInput.closest('.form-group').classList.add('error');
+                document.querySelector('#email + .error-message').textContent = errorMessageText;
+                document.querySelector('#senha + .error-message').textContent = errorMessageText;
+            }
+        } catch (error) {
+            console.error("Erro no login:", error);
+            showMessage("Ocorreu um erro ao tentar fazer login. Verifique sua conexão.", 'error');
+        }
+    });
 
     filterTabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -620,6 +647,6 @@ loginForm.addEventListener('submit', async (e) => {
 
     // --- INICIALIZAÇÃO ---
 
-    updateUIForLogin();
-    fetchAndRenderActivities(currentPage, currentFilter);
+   updateUIForLogin();
+    fetchAndRenderActivities(currentPage, currentFilter, activitiesPerPage);
 });
