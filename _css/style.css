@@ -346,3 +346,11 @@ body {
     top: 5px;
     right: 10px;
 }
+
+.page-ellipsis {
+    background-color: transparent;
+    border: none;
+    color: var(--color-text-secondary); /* Cor cinza mais clara */
+    cursor: default;
+    padding: 0 5px;
+}

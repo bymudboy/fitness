@@ -1,8 +1,11 @@
+// /_javascript/script.js
+
 document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = 'http://localhost:3000';
     let currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
     let currentPage = 1;
     let currentFilter = '';
+    const activitiesPerPage = 4; // Define o número de atividades por página
 
     // Elementos do DOM
     const activityListContainer = document.getElementById('activity-list');
@@ -19,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevButton = document.getElementById('prev-button');
     const nextButton = document.getElementById('next-button');
     const pageNumbersContainer = document.getElementById('page-numbers');
-
 
     // Elementos do Perfil e Stats
     const profileImg = document.getElementById('profile-img');
@@ -117,6 +119,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+// Função para renderizar a paginação
+const renderPagination = (totalActivities) => {
+    pageNumbersContainer.innerHTML = '';
+    const totalPages = Math.ceil(totalActivities / activitiesPerPage);
+    const maxPagesToShow = 5;
+
+    if (totalPages <= 1) {
+        prevButton.style.display = 'none';
+        nextButton.style.display = 'none';
+        return;
+    } else {
+        prevButton.style.display = 'block';
+        nextButton.style.display = 'block';
+    }
+
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = currentPage >= totalPages;
+
+    const start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    const end = Math.min(totalPages, start + maxPagesToShow - 1);
+
+    // Adiciona o botão da primeira página
+    if (start > 1) {
+        pageNumbersContainer.appendChild(createPageButton(1));
+    }
+
+    // Adiciona o botão '...' se houver um salto grande
+    if (start > 2) {
+        const ellipsis = document.createElement('button');
+        ellipsis.className = 'page-ellipsis';
+        ellipsis.textContent = '...';
+        ellipsis.disabled = true;
+        pageNumbersContainer.appendChild(ellipsis);
+    }
+
+    // Adiciona os botões de página dinâmicos
+    for (let i = start; i <= end; i++) {
+        pageNumbersContainer.appendChild(createPageButton(i));
+    }
+
+    // Adiciona o botão '...' se houver um salto grande
+    if (end < totalPages - 1) {
+        const ellipsis = document.createElement('button');
+        ellipsis.className = 'page-ellipsis';
+        ellipsis.textContent = '...';
+        ellipsis.disabled = true;
+        pageNumbersContainer.appendChild(ellipsis);
+    }
+    
+    // Adiciona o botão da última página
+    if (end < totalPages) {
+        pageNumbersContainer.appendChild(createPageButton(totalPages));
+    }
+
+    // Função auxiliar para criar os botões (sem alterações)
+    function createPageButton(pageNumber) {
+        const pageButton = document.createElement('button');
+        pageButton.className = 'page-num';
+        pageButton.textContent = pageNumber;
+        if (pageNumber === currentPage) {
+            pageButton.classList.add('active');
+        }
+        pageButton.addEventListener('click', () => {
+            if (!currentUser) {
+                showMessage('Você precisa estar logado para navegar entre as páginas.', 'error');
+                return;
+            }
+            currentPage = pageNumber;
+            fetchAndRenderActivities(currentPage, currentFilter);
+        });
+        return pageButton;
+    }
+};
+
     const renderActivities = (activities) => {
         activityListContainer.innerHTML = '';
         if (activities.length === 0) {
@@ -132,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = new Date(activity.data_atividade);
             const formattedDate = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} - ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`;
 
-            // Verifica se o usuário está logado para aplicar a classe 'disabled-btn'
             const buttonClass = !currentUser ? 'disabled-btn' : '';
 
             activityElement.innerHTML = `
@@ -185,9 +260,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fetchAndRenderActivities = async (page = 1, filter = '') => {
         try {
-            const response = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}`);
-            if (!response.ok) throw new Error('Falha ao buscar atividades');
-            const activities = await response.json();
+            const totalResponse = await fetch(`${apiUrl}/atividades/total?tipo=${filter}`);
+            const totalData = await totalResponse.json();
+            const totalActivities = totalData.total;
+            renderPagination(totalActivities);
+
+            const activitiesResponse = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}`);
+            if (!activitiesResponse.ok) throw new Error('Falha ao buscar atividades');
+            const activities = await activitiesResponse.json();
 
             const activitiesWithLikes = await Promise.all(activities.map(async activity => {
                 let likedByUser = false;
@@ -335,11 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 commentInput.value = '';
-                // Atualiza a contagem de comentários (otimista)
                 const commentCountSpan = commentsSection.closest('.activity-item').querySelector('.comment-count');
                 commentCountSpan.textContent = parseInt(commentCountSpan.textContent) + 1;
                 
-                // Recarrega os comentários para exibir o novo
                 const commentsList = commentsSection.querySelector('.comments-list');
                 fetchAndRenderComments(activityId, commentsList);
 
@@ -351,6 +429,27 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro de comunicação ao adicionar comentário:', error);
             showMessage('Ocorreu um erro de comunicação ao adicionar o comentário.', 'error');
         }
+    });
+
+    // Adiciona os listeners para os botões de paginação
+    prevButton.addEventListener('click', () => {
+        if (!currentUser) {
+            showMessage('Você precisa estar logado para navegar entre as páginas.', 'error');
+            return;
+        }
+        if (currentPage > 1) {
+            currentPage--;
+            fetchAndRenderActivities(currentPage, currentFilter);
+        }
+    });
+
+    nextButton.addEventListener('click', () => {
+        if (!currentUser) {
+            showMessage('Você precisa estar logado para navegar entre as páginas.', 'error');
+            return;
+        }
+        currentPage++;
+        fetchAndRenderActivities(currentPage, currentFilter);
     });
 
     // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---

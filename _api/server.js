@@ -202,6 +202,26 @@ app.get("/stats", async (req, res) => {
     }
 });
 
+// Rota: Total de atividades com base no filtro
+app.get("/atividades/total", async (req, res) => {
+    const tipo = req.query.tipo;
+    let query = "SELECT COUNT(*) as total FROM tb_atividade";
+    const queryParams = [];
+
+    if (tipo) {
+        query += " WHERE tipo_atividade = ?";
+        queryParams.push(tipo);
+    }
+
+    try {
+        const [results] = await pool.query(query, queryParams);
+        res.json({ total: results[0].total });
+    } catch (err) {
+        console.error("Erro ao buscar total de atividades:", err);
+        res.status(500).json(err);
+    }
+});
+
 // Rota: Estatísticas do usuário logado
 app.get("/usuarios/:id/stats", async (req, res) => {
     const { id } = req.params;
