@@ -199,7 +199,7 @@ body {
 
 /* Estilo para o ícone de coração quando está curtido */
 .like-btn .fa-heart.liked {
-    color: #ff335f; /* Cor vermelha para a curtida */
+    color: #FF0000; /* Cor vermelha para a curtida */
 }
 
 /* --- Estilos para a Seção de Comentários --- */

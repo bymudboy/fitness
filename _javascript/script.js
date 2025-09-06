@@ -247,7 +247,7 @@ const renderPagination = (totalActivities) => {
                 </div>
                 <div class="comments-section hidden" data-id="${activity.id_atividade}">
                     <div class="comment-form">
-                        <input type="text" class="comment-input" placeholder="Adicionar um comentário..." required>
+                        <input type="text" class="comment-input" placeholder="Escrever um comentário..." required>
                         <button type="submit" class="btn-comment-submit">Comentar</button>
                     </div>
                     <div class="comments-list">
@@ -357,77 +357,81 @@ const renderPagination = (totalActivities) => {
         }
     });
 
-    // Listener para o botão de comentário
+   // Listener para o botão de comentário e envio do formulário
     activityListContainer.addEventListener('click', async (event) => {
         const commentButton = event.target.closest('.comment-btn');
-        if (!commentButton) {
-            return;
-        }
-
-        if (commentButton.classList.contains('disabled-btn')) {
-            showMessage('Você precisa estar logado para comentar.', 'error');
-            return;
-        }
-        
-        const activityItem = commentButton.closest('.activity-item');
-        const commentsSection = activityItem.querySelector('.comments-section');
-
-        commentsSection.classList.toggle('hidden');
-
-        if (!commentsSection.classList.contains('hidden')) {
-            const commentsList = commentsSection.querySelector('.comments-list');
-            const activityId = parseInt(commentButton.dataset.id);
-            fetchAndRenderComments(activityId, commentsList);
-        }
-    });
-
-    // Listener para o formulário de envio de comentário
-    activityListContainer.addEventListener('click', async (event) => {
         const submitButton = event.target.closest('.btn-comment-submit');
-        if (!submitButton) {
-            return;
-        }
 
-        if (!currentUser) {
-            showMessage('Você precisa estar logado para adicionar um comentário.', 'error');
-            return;
-        }
-
-        const commentsSection = submitButton.closest('.comments-section');
-        const activityId = parseInt(commentsSection.dataset.id);
-        const commentInput = commentsSection.querySelector('.comment-input');
-        const commentText = commentInput.value.trim();
-
-        if (commentText.length <= 2) {
-            showMessage('O comentário deve ter mais de 2 caracteres.', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${apiUrl}/atividades/${activityId}/comentarios`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id_usuario: currentUser.id_usuario,
-                    comentario: commentText
-                })
-            });
-
-            if (response.ok) {
-                commentInput.value = '';
-                const commentCountSpan = commentsSection.closest('.activity-item').querySelector('.comment-count');
-                commentCountSpan.textContent = parseInt(commentCountSpan.textContent) + 1;
-                
-                const commentsList = commentsSection.querySelector('.comments-list');
-                fetchAndRenderComments(activityId, commentsList);
-
-            } else {
-                const data = await response.json();
-                showMessage(data.erro || 'Falha ao adicionar comentário.', 'error');
+        if (commentButton) {
+            if (commentButton.classList.contains('disabled-btn')) {
+                showMessage('Você precisa estar logado para comentar.', 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Erro de comunicação ao adicionar comentário:', error);
-            showMessage('Ocorreu um erro de comunicação ao adicionar o comentário.', 'error');
+
+            const activityItem = commentButton.closest('.activity-item');
+            const commentsSection = activityItem.querySelector('.comments-section');
+            commentsSection.classList.toggle('hidden');
+
+            if (!commentsSection.classList.contains('hidden')) {
+                const commentsList = commentsSection.querySelector('.comments-list');
+                const activityId = parseInt(commentButton.dataset.id);
+                fetchAndRenderComments(activityId, commentsList);
+            }
+        }
+
+        if (submitButton) {
+            event.preventDefault(); // Impede o comportamento padrão, se existir
+
+            const commentsSection = submitButton.closest('.comments-section');
+            const activityId = parseInt(commentsSection.dataset.id);
+            const commentInput = commentsSection.querySelector('.comment-input');
+            const commentText = commentInput.value.trim();
+
+            if (!currentUser) {
+                showMessage('Você precisa estar logado para adicionar um comentário.', 'error');
+                return;
+            }
+
+            // NOVA LÓGICA DE VALIDAÇÃO
+            // 1. Checa se o campo está vazio (após remover espaços em branco)
+            if (commentText === "") {
+                showMessage('Não é possível enviar um comentário vazio.', 'error');
+                return;
+            }
+
+            // 2. Se não estiver vazio, checa o comprimento mínimo
+            if (commentText.length <= 2) {
+                showMessage('O comentário deve ter mais de 2 caracteres.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/atividades/${activityId}/comentarios`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_usuario: currentUser.id_usuario,
+                        comentario: commentText
+                    })
+                });
+
+                if (response.ok) {
+                    showMessage("Comentário adicionado!", 'success');
+                    commentInput.value = '';
+                    const commentCountSpan = commentsSection.closest('.activity-item').querySelector('.comment-count');
+                    commentCountSpan.textContent = parseInt(commentCountSpan.textContent) + 1;
+                    
+                    const commentsList = commentsSection.querySelector('.comments-list');
+                    fetchAndRenderComments(activityId, commentsList);
+
+                } else {
+                    const data = await response.json();
+                    showMessage(data.erro || 'Falha ao adicionar comentário.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro de comunicação ao adicionar comentário:', error);
+                showMessage('Ocorreu um erro de comunicação ao adicionar o comentário.', 'error');
+            }
         }
     });
 
