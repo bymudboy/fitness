@@ -27,6 +27,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const statsAtividades = document.getElementById('stats-atividades');
     const statsCalorias = document.getElementById('stats-calorias');
 
+    // --- FUNÇÕES GLOBAIS DE INTERFACE ---
+
+    // Função para exibir uma caixa de mensagem customizada
+    const showMessage = (message, type = 'info') => {
+        const messageContainer = document.createElement('div');
+        messageContainer.className = 'message-container';
+
+        const messageBox = document.createElement('div');
+        messageBox.className = `message-box ${type}`;
+        messageBox.innerHTML = `
+            <p>${message}</p>
+            <button class="close-message-btn">&times;</button>
+        `;
+
+        messageBox.querySelector('.close-message-btn').addEventListener('click', () => {
+            messageContainer.remove();
+        });
+
+        messageContainer.appendChild(messageBox);
+        document.body.appendChild(messageContainer);
+    };
+
     // --- FUNÇÕES DE COMUNICAÇÃO COM A API ---
 
     // Função para buscar e exibir as estatísticas gerais
@@ -69,6 +91,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Função para buscar e renderizar os comentários de uma atividade
+    const fetchAndRenderComments = async (activityId, commentsContainer) => {
+        try {
+            const response = await fetch(`${apiUrl}/atividades/${activityId}/comentarios`);
+            if (!response.ok) throw new Error('Falha ao buscar comentários');
+            const comments = await response.json();
+
+            commentsContainer.innerHTML = '';
+            comments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment-item';
+                commentElement.innerHTML = `
+                    <div class="comment-user">
+                        <img src="_imagens/${comment.imagem}" alt="Avatar do usuário">
+                        <span>${comment.nome_usuario}</span>
+                    </div>
+                    <p>${comment.texto}</p>
+                `;
+                commentsContainer.appendChild(commentElement);
+            });
+        } catch (error) {
+            console.error('Erro ao buscar comentários:', error);
+            commentsContainer.innerHTML = '<p>Erro ao carregar comentários.</p>';
+        }
+    };
+
     const renderActivities = (activities) => {
         activityListContainer.innerHTML = '';
         if (activities.length === 0) {
@@ -84,42 +132,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = new Date(activity.data_atividade);
             const formattedDate = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} - ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`;
 
+            // Verifica se o usuário está logado para aplicar a classe 'disabled-btn'
+            const buttonClass = !currentUser ? 'disabled-btn' : '';
+
             activityElement.innerHTML = `
-            <div class="activity-header">
-                <h4>${activity.tipo}</h4>
-                <span>${formattedDate}</span>
-            </div>
-            <div class="activity-content">
-                <div class="avatar">
-                    <img src="_imagens/${activity.foto_perfil}" alt="Avatar do usuário">
-                    <p class="user-name">${activity.nome_usuario}</p>
+                <div class="activity-header">
+                    <h4>${activity.tipo}</h4>
+                    <span>${formattedDate}</span>
                 </div>
-                <div class="activity-details">
-                    <div>
-                        <div class="stat-value">${activity.distancia_km.toFixed(1)} km</div>
-                        <div class="stat-label">Distância</div>
+                <div class="activity-content">
+                    <div class="avatar">
+                        <img src="_imagens/${activity.foto_perfil}" alt="Avatar do usuário">
+                        <p class="user-name">${activity.nome_usuario}</p>
                     </div>
-                    <div>
-                        <div class="stat-value">${activity.duracao_min} min</div>
-                        <div class="stat-label">Duração</div>
+                    <div class="activity-details">
+                        <div>
+                            <div class="stat-value">${activity.distancia_km.toFixed(1)} km</div>
+                            <div class="stat-label">Distância</div>
+                        </div>
+                        <div>
+                            <div class="stat-value">${activity.duracao_min} min</div>
+                            <div class="stat-label">Duração</div>
+                        </div>
+                        <div>
+                            <div class="stat-value">${activity.calorias}</div>
+                            <div class="stat-label">Calorias</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="stat-value">${activity.calorias}</div>
-                        <div class="stat-label">Calorias</div>
+                    <div class="activity-social">
+                        <button class="like-btn ${buttonClass}" data-id="${activity.id_atividade}">
+                            <i class="fa-heart ${activity.likedByUser ? 'fas liked' : 'far'}"></i>
+                            <span class="like-count">${activity.likes}</span>
+                        </button>
+                        <button class="comment-btn ${buttonClass}" data-id="${activity.id_atividade}">
+                            <i class="far fa-comment"></i>
+                            <span class="comment-count">${activity.comentarios}</span>
+                        </button>
                     </div>
                 </div>
-                <div class="activity-social">
-                    <button class="like-btn" data-id="${activity.id_atividade}">
-                        <i class="fa-heart ${activity.likedByUser ? 'fas liked' : 'far'}"></i>
-                        <span class="like-count">${activity.likes}</span>
-                    </button>
-                    <button class="comment-btn" data-id="${activity.id_atividade}">
-                        <i class="far fa-comment"></i>
-                        <span>${activity.comentarios}</span>
-                    </button>
+                <div class="comments-section hidden" data-id="${activity.id_atividade}">
+                    <div class="comment-form">
+                        <input type="text" class="comment-input" placeholder="Adicionar um comentário..." required>
+                        <button type="submit" class="btn-comment-submit">Comentar</button>
+                    </div>
+                    <div class="comments-list">
+                        </div>
                 </div>
-            </div>
-        `;
+            `;
             activityListContainer.appendChild(activityElement);
         });
     };
@@ -150,15 +209,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Rota: Curtir/Descurtir atividade
+    // Listener para o botão de like
     activityListContainer.addEventListener('click', async (event) => {
         const likeButton = event.target.closest('.like-btn');
         if (!likeButton) {
             return;
         }
 
-        if (!currentUser) {
-            alert('Erro: Você precisa estar logado para curtir uma atividade.');
+        if (likeButton.classList.contains('disabled-btn')) {
+            showMessage('Você precisa estar logado para curtir uma atividade.', 'error');
             return;
         }
 
@@ -166,11 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const likeCountSpan = likeButton.querySelector('.like-count');
         const heartIcon = likeButton.querySelector('.fa-heart');
 
-        // Estado inicial antes de qualquer alteração
         const isCurrentlyLiked = heartIcon.classList.contains('fas');
         const originalLikes = parseInt(likeCountSpan.textContent);
 
-        // PASSO 1: Atualiza a interface imediatamente (Lógica Otimista)
         let newLikesCount;
         if (isCurrentlyLiked) {
             heartIcon.classList.remove('fas', 'liked');
@@ -183,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         likeCountSpan.textContent = newLikesCount;
 
-        // PASSO 2: Envia a requisição para o servidor
         try {
             const response = await fetch(`${apiUrl}/likes`, {
                 method: 'POST',
@@ -195,9 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                // FALHA: Reverte a interface para o estado original
                 console.error("Erro ao processar curtida no servidor.");
-                
+
                 if (isCurrentlyLiked) {
                     heartIcon.classList.remove('far');
                     heartIcon.classList.add('fas', 'liked');
@@ -209,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
-            // ERRO DE REDE: Reverte a interface
             console.error("Erro de comunicação com o servidor:", error);
             
             if (isCurrentlyLiked) {
@@ -220,6 +274,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 heartIcon.classList.add('far');
             }
             likeCountSpan.textContent = originalLikes;
+        }
+    });
+
+    // Listener para o botão de comentário
+    activityListContainer.addEventListener('click', async (event) => {
+        const commentButton = event.target.closest('.comment-btn');
+        if (!commentButton) {
+            return;
+        }
+
+        if (commentButton.classList.contains('disabled-btn')) {
+            showMessage('Você precisa estar logado para comentar.', 'error');
+            return;
+        }
+        
+        const activityItem = commentButton.closest('.activity-item');
+        const commentsSection = activityItem.querySelector('.comments-section');
+
+        commentsSection.classList.toggle('hidden');
+
+        if (!commentsSection.classList.contains('hidden')) {
+            const commentsList = commentsSection.querySelector('.comments-list');
+            const activityId = parseInt(commentButton.dataset.id);
+            fetchAndRenderComments(activityId, commentsList);
+        }
+    });
+
+    // Listener para o formulário de envio de comentário
+    activityListContainer.addEventListener('click', async (event) => {
+        const submitButton = event.target.closest('.btn-comment-submit');
+        if (!submitButton) {
+            return;
+        }
+
+        if (!currentUser) {
+            showMessage('Você precisa estar logado para adicionar um comentário.', 'error');
+            return;
+        }
+
+        const commentsSection = submitButton.closest('.comments-section');
+        const activityId = parseInt(commentsSection.dataset.id);
+        const commentInput = commentsSection.querySelector('.comment-input');
+        const commentText = commentInput.value.trim();
+
+        if (commentText.length <= 2) {
+            showMessage('O comentário deve ter mais de 2 caracteres.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiUrl}/atividades/${activityId}/comentarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_usuario: currentUser.id_usuario,
+                    comentario: commentText
+                })
+            });
+
+            if (response.ok) {
+                commentInput.value = '';
+                // Atualiza a contagem de comentários (otimista)
+                const commentCountSpan = commentsSection.closest('.activity-item').querySelector('.comment-count');
+                commentCountSpan.textContent = parseInt(commentCountSpan.textContent) + 1;
+                
+                // Recarrega os comentários para exibir o novo
+                const commentsList = commentsSection.querySelector('.comments-list');
+                fetchAndRenderComments(activityId, commentsList);
+
+            } else {
+                const data = await response.json();
+                showMessage(data.erro || 'Falha ao adicionar comentário.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro de comunicação ao adicionar comentário:', error);
+            showMessage('Ocorreu um erro de comunicação ao adicionar o comentário.', 'error');
         }
     });
 
@@ -280,11 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginForm.reset();
                 fetchAndRenderActivities(1, currentFilter);
             } else {
-                console.error(data.erro || "Falha no login");
+                showMessage(data.erro || "Falha no login", 'error');
             }
         } catch (error) {
             console.error("Erro no login:", error);
-            console.error("Ocorreu um erro ao tentar fazer login.");
+            showMessage("Ocorreu um erro ao tentar fazer login.", 'error');
         }
     });
 
@@ -310,13 +440,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 createActivitySection.classList.add('hidden');
                 btnAtividade.classList.remove('active');
             }
+        } else {
+            showMessage('Você precisa estar logado para criar uma atividade.', 'error');
         }
     });
 
     createActivityForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!currentUser) {
-            console.error("Você precisa estar logado para criar uma atividade.");
+            showMessage("Você precisa estar logado para criar uma atividade.", 'error');
             return;
         }
 
@@ -336,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
+                showMessage("Atividade criada com sucesso!", 'success');
                 createActivityForm.reset();
                 feedSection.classList.remove('hidden');
                 createActivitySection.classList.add('hidden');
@@ -343,11 +476,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchAndRenderActivities(1, currentFilter);
             } else {
                 const data = await response.json();
-                console.error(data.erro || "Falha ao criar atividade.");
+                showMessage(data.erro || "Falha ao criar atividade.", 'error');
             }
         } catch (error) {
             console.error("Erro ao criar atividade:", error);
-            console.error("Ocorreu um erro de comunicação ao criar a atividade.");
+            showMessage("Ocorreu um erro de comunicação ao criar a atividade.", 'error');
         }
     });
 

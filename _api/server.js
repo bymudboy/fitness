@@ -129,6 +129,21 @@ app.post("/atividades/:id/comentarios", async (req, res) => {
     }
 });
 
+// Rota: Obter comentários de uma atividade
+app.get("/atividades/:id/comentarios", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [comments] = await pool.query(
+            "SELECT c.texto, c.createdAt, u.nome_usuario, u.imagem FROM tb_comentario c JOIN tb_usuarios u ON c.id_usuario = u.id_usuario WHERE c.id_atividade = ? ORDER BY c.createdAt DESC",
+            [id]
+        );
+        res.json(comments);
+    } catch (err) {
+        console.error("Erro ao buscar comentários:", err);
+        res.status(500).json(err);
+    }
+});
+
 // Rota: Adicionar/Remover curtida
 app.post("/likes", async (req, res) => {
     const { id_atividade, id_usuario } = req.body;
