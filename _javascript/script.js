@@ -490,32 +490,63 @@ const renderPagination = (totalActivities) => {
     closeModalButton.addEventListener('click', () => loginModal.classList.add('hidden'));
     cancelButton.addEventListener('click', () => loginModal.classList.add('hidden'));
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const senha = document.getElementById('senha').value;
-        try {
-            const response = await fetch(`${apiUrl}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, senha })
-            });
-            const data = await response.json();
-            if (response.ok) {
-                currentUser = data;
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                updateUIForLogin();
-                loginModal.classList.add('hidden');
-                loginForm.reset();
-                fetchAndRenderActivities(1, currentFilter);
-            } else {
-                showMessage(data.erro || "Falha no login", 'error');
-            }
-        } catch (error) {
-            console.error("Erro no login:", error);
-            showMessage("Ocorreu um erro ao tentar fazer login.", 'error');
+    // Listener para o formulário de login
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const emailInput = document.getElementById('email');
+    const senhaInput = document.getElementById('senha');
+    
+    // Limpa erros anteriores
+    emailInput.closest('.form-group').classList.remove('error');
+    senhaInput.closest('.form-group').classList.remove('error');
+    document.querySelector('#email + .error-message').textContent = '';
+    document.querySelector('#senha + .error-message').textContent = '';
+
+    const email = emailInput.value;
+    const senha = senhaInput.value;
+    
+    // Validação client-side para campos vazios
+    if (!email || !senha) {
+        if (!email) {
+            emailInput.closest('.form-group').classList.add('error');
+            document.querySelector('#email + .error-message').textContent = 'E-mail obrigatório';
         }
-    });
+        if (!senha) {
+            senhaInput.closest('.form-group').classList.add('error');
+            document.querySelector('#senha + .error-message').textContent = 'Senha obrigatória';
+        }
+        return; // Impede a submissão se algum campo estiver vazio
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, senha })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            currentUser = data;
+            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateUIForLogin();
+            loginModal.classList.add('hidden');
+            loginForm.reset();
+            fetchAndRenderActivities(1, currentFilter);
+        } else {
+            // Lógica de erro para credenciais incorretas (erro do servidor)
+            const errorMessageText = data.erro || "Falha no login";
+            
+            emailInput.closest('.form-group').classList.add('error');
+            senhaInput.closest('.form-group').classList.add('error');
+            document.querySelector('#email + .error-message').textContent = errorMessageText;
+            document.querySelector('#senha + .error-message').textContent = errorMessageText;
+        }
+    } catch (error) {
+        console.error("Erro no login:", error);
+        showMessage("Ocorreu um erro ao tentar fazer login. Verifique sua conexão.", 'error');
+    }
+});
 
     filterTabs.forEach(tab => {
         tab.addEventListener('click', () => {

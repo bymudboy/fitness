@@ -235,7 +235,7 @@ body {
 
 .btn-comment-submit {
     padding: 10px 15px;
-    background-color: #007bff;
+    background-color: #333;
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -246,7 +246,7 @@ body {
 }
 
 .btn-comment-submit:hover {
-    background-color: #0056b3;
+    background-color: #555555;
 }
 
 .comments-list {
@@ -271,11 +271,11 @@ body {
 }
 
 .comment-user img {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #007bff;
+    border: 2px solid #555555;
 }
 
 .comment-user span {
@@ -353,4 +353,16 @@ body {
     color: var(--color-text-secondary); /* Cor cinza mais clara */
     cursor: default;
     padding: 0 5px;
+}
+
+/* Adicione esta classe ao seu arquivo style.css */
+.form-group.error input {
+    border: 2px solid #e74c3c; /* Borda vermelha */
+}
+
+.error-message {
+    color: #e74c3c; /* Cor do texto da mensagem de erro */
+    font-size: 12px;
+    margin-top: 5px;
+    display: block; /* Garante que a mensagem apareça em uma nova linha */
 }
