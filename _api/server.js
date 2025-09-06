@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const cors = require("cors");
 const pool = require('./db');
@@ -14,7 +13,6 @@ app.post("/login", async (req, res) => {
         return res.status(400).json({ erro: "E-mail e senha são obrigatórios" });
     }
     try {
-        // SEM ALIAS: Seleciona as colunas com seus nomes originais
         const [results] = await pool.query(
             "SELECT id_usuario, nome_usuario, email, imagem FROM tb_usuarios WHERE email = ? AND senha = ?",
             [email, senha]
@@ -22,12 +20,11 @@ app.post("/login", async (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-            // AJUSTE NO CÓDIGO: Monta o objeto de resposta no formato esperado pelo frontend
             const responseUser = {
                 id_usuario: user.id_usuario,
                 nome_usuario: user.nome_usuario,
                 email: user.email,
-                foto_perfil: user.imagem // Mapeia 'imagem' para 'foto_perfil'
+                foto_perfil: user.imagem
             };
             res.json(responseUser);
         } else {
@@ -46,7 +43,6 @@ app.get("/atividades", async (req, res) => {
     const offset = (page - 1) * limit;
     const tipo = req.query.tipo;
 
-    // SEM ALIAS: Seleciona as colunas com seus nomes originais
     let query = `
         SELECT 
             a.id_atividade,
@@ -76,17 +72,16 @@ app.get("/atividades", async (req, res) => {
 
     try {
         const [results] = await pool.query(query, queryParams);
-        
-        // AJUSTE NO CÓDIGO: Mapeia os resultados para o formato esperado pelo frontend
+
         const activities = results.map(act => ({
             id_atividade: act.id_atividade,
-            tipo: act.tipo_atividade, // Mapeia 'tipo_atividade' para 'tipo'
-            distancia_km: act.distancia_percorrida / 1000, // Converte para km
-            duracao_min: act.duracao_atividade, // Mapeia 'duracao_atividade' para 'duracao_min'
-            calorias: act.quantidade_calorias, // Mapeia 'quantidade_calorias' para 'calorias'
-            data_atividade: act.createdAt, // Mapeia 'createdAt' para 'data_atividade'
+            tipo: act.tipo_atividade,
+            distancia_km: act.distancia_percorrida / 1000,
+            duracao_min: act.duracao_atividade,
+            calorias: act.quantidade_calorias,
+            data_atividade: act.createdAt,
             nome_usuario: act.nome_usuario,
-            foto_perfil: act.imagem, // Mapeia 'imagem' para 'foto_perfil'
+            foto_perfil: act.imagem,
             likes: act.likes,
             comentarios: act.comentarios
         }));
@@ -115,27 +110,6 @@ app.post("/atividades", async (req, res) => {
     }
 });
 
-// Rota: Curtir/Descurtir uma atividade
-app.post("/atividades/:id/like", async (req, res) => {
-    const { id } = req.params;
-    const { id_usuario } = req.body;
-
-    try {
-        const [existingLike] = await pool.query("SELECT * FROM tb_curtida WHERE id_atividade = ? AND id_usuario = ?", [id, id_usuario]);
-
-        if (existingLike.length > 0) {
-            await pool.query("DELETE FROM tb_curtida WHERE id_atividade = ? AND id_usuario = ?", [id, id_usuario]);
-            res.json({ message: "Like removido" });
-        } else {
-            await pool.query("INSERT INTO tb_curtida (id_atividade, id_usuario, createdAt) VALUES (?, ?, NOW())", [id, id_usuario]);
-            res.json({ message: "Atividade curtida" });
-        }
-    } catch (err) {
-        console.error("Erro ao curtir:", err);
-        res.status(500).json(err);
-    }
-});
-
 // Rota: Adicionar comentário
 app.post("/atividades/:id/comentarios", async (req, res) => {
     const { id } = req.params;
@@ -155,6 +129,48 @@ app.post("/atividades/:id/comentarios", async (req, res) => {
     }
 });
 
+// Rota: Adicionar/Remover curtida
+app.post("/likes", async (req, res) => {
+    const { id_atividade, id_usuario } = req.body;
+    try {
+        const [existingLike] = await pool.query(
+            "SELECT * FROM tb_curtida WHERE id_atividade = ? AND id_usuario = ?",
+            [id_atividade, id_usuario]
+        );
+
+        if (existingLike.length > 0) {
+            await pool.query(
+                "DELETE FROM tb_curtida WHERE id_atividade = ? AND id_usuario = ?",
+                [id_atividade, id_usuario]
+            );
+            return res.status(200).json({ liked: false });
+        } else {
+            await pool.query(
+                "INSERT INTO tb_curtida (id_atividade, id_usuario) VALUES (?, ?)",
+                [id_atividade, id_usuario]
+            );
+            return res.status(200).json({ liked: true });
+        }
+    } catch (err) {
+        console.error("Erro ao processar curtida:", err);
+        return res.status(500).json({ erro: "Erro interno no servidor" });
+    }
+});
+
+// Rota: Verificar se o usuário curtiu uma atividade
+app.get("/atividades/:id/likes/:id_usuario", async (req, res) => {
+    const { id, id_usuario } = req.params;
+    try {
+        const [existingLike] = await pool.query(
+            "SELECT * FROM tb_curtida WHERE id_atividade = ? AND id_usuario = ?",
+            [id, id_usuario]
+        );
+        res.json({ liked: existingLike.length > 0 });
+    } catch (err) {
+        console.error("Erro ao verificar curtida:", err);
+        res.status(500).json({ erro: "Erro interno no servidor" });
+    }
+});
 
 // Rota: Estatísticas gerais
 app.get("/stats", async (req, res) => {
@@ -186,7 +202,6 @@ app.get("/usuarios/:id/stats", async (req, res) => {
         res.status(500).json(err);
     }
 });
-
 
 // Iniciar servidor
 app.listen(3000, () => {

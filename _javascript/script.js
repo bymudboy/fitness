@@ -1,5 +1,3 @@
-// /_javascript/script.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = 'http://localhost:3000';
     let currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
@@ -77,43 +75,51 @@ document.addEventListener('DOMContentLoaded', () => {
             activityListContainer.innerHTML = '<p>Nenhuma atividade encontrada para este filtro.</p>';
             return;
         }
+
         activities.forEach(activity => {
             const activityElement = document.createElement('div');
             activityElement.className = 'activity-item';
+            activityElement.setAttribute('data-id', activity.id_atividade);
 
             const date = new Date(activity.data_atividade);
             const formattedDate = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} - ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`;
 
             activityElement.innerHTML = `
-                <div class="activity-header">
-                    <h4>${activity.tipo}</h4>
-                    <span>${formattedDate}</span>
+            <div class="activity-header">
+                <h4>${activity.tipo}</h4>
+                <span>${formattedDate}</span>
+            </div>
+            <div class="activity-content">
+                <div class="avatar">
+                    <img src="_imagens/${activity.foto_perfil}" alt="Avatar do usuário">
+                    <p class="user-name">${activity.nome_usuario}</p>
                 </div>
-                <div class="activity-content">
-                    <div class="avatar">
-                        <img src="_imagens/${activity.foto_perfil}" alt="Avatar do usuário">
-                        <p class="user-name">${activity.nome_usuario}</p>
+                <div class="activity-details">
+                    <div>
+                        <div class="stat-value">${activity.distancia_km.toFixed(1)} km</div>
+                        <div class="stat-label">Distância</div>
                     </div>
-                    <div class="activity-details">
-                        <div>
-                            <div class="stat-value">${activity.distancia_km.toFixed(1)} km</div>
-                            <div class="stat-label">Distância</div>
-                        </div>
-                        <div>
-                            <div class="stat-value">${activity.duracao_min} min</div>
-                            <div class="stat-label">Duração</div>
-                        </div>
-                        <div>
-                            <div class="stat-value">${activity.calorias}</div>
-                            <div class="stat-label">Calorias</div>
-                        </div>
+                    <div>
+                        <div class="stat-value">${activity.duracao_min} min</div>
+                        <div class="stat-label">Duração</div>
                     </div>
-                    <div class="activity-social">
-                        <button class="like-btn" data-id="${activity.id_atividade}"><i class="far fa-heart"></i> ${activity.likes}</button>
-                        <button class="comment-btn" data-id="${activity.id_atividade}"><i class="far fa-comment"></i> ${activity.comentarios}</button>
+                    <div>
+                        <div class="stat-value">${activity.calorias}</div>
+                        <div class="stat-label">Calorias</div>
                     </div>
                 </div>
-            `;
+                <div class="activity-social">
+                    <button class="like-btn" data-id="${activity.id_atividade}">
+                        <i class="fa-heart ${activity.likedByUser ? 'fas liked' : 'far'}"></i>
+                        <span class="like-count">${activity.likes}</span>
+                    </button>
+                    <button class="comment-btn" data-id="${activity.id_atividade}">
+                        <i class="far fa-comment"></i>
+                        <span>${activity.comentarios}</span>
+                    </button>
+                </div>
+            </div>
+        `;
             activityListContainer.appendChild(activityElement);
         });
     };
@@ -123,14 +129,99 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${apiUrl}/atividades?page=${page}&tipo=${filter}`);
             if (!response.ok) throw new Error('Falha ao buscar atividades');
             const activities = await response.json();
-            
+
+            const activitiesWithLikes = await Promise.all(activities.map(async activity => {
+                let likedByUser = false;
+                if (currentUser) {
+                    const likeResponse = await fetch(`${apiUrl}/atividades/${activity.id_atividade}/likes/${currentUser.id_usuario}`);
+                    if (likeResponse.ok) {
+                        const result = await likeResponse.json();
+                        likedByUser = result.liked;
+                    }
+                }
+                return { ...activity, likedByUser };
+            }));
+
             updateStatsUI();
-            renderActivities(activities);
+            renderActivities(activitiesWithLikes);
         } catch (error) {
             console.error('Erro ao buscar atividades:', error);
             activityListContainer.innerHTML = '<p>Erro ao carregar atividades. Verifique o console.</p>';
         }
     };
+
+    // Rota: Curtir/Descurtir atividade
+    activityListContainer.addEventListener('click', async (event) => {
+        const likeButton = event.target.closest('.like-btn');
+        if (!likeButton) {
+            return;
+        }
+
+        if (!currentUser) {
+            alert('Erro: Você precisa estar logado para curtir uma atividade.');
+            return;
+        }
+
+        const idAtividade = parseInt(likeButton.dataset.id);
+        const likeCountSpan = likeButton.querySelector('.like-count');
+        const heartIcon = likeButton.querySelector('.fa-heart');
+
+        // Estado inicial antes de qualquer alteração
+        const isCurrentlyLiked = heartIcon.classList.contains('fas');
+        const originalLikes = parseInt(likeCountSpan.textContent);
+
+        // PASSO 1: Atualiza a interface imediatamente (Lógica Otimista)
+        let newLikesCount;
+        if (isCurrentlyLiked) {
+            heartIcon.classList.remove('fas', 'liked');
+            heartIcon.classList.add('far');
+            newLikesCount = originalLikes - 1;
+        } else {
+            heartIcon.classList.remove('far');
+            heartIcon.classList.add('fas', 'liked');
+            newLikesCount = originalLikes + 1;
+        }
+        likeCountSpan.textContent = newLikesCount;
+
+        // PASSO 2: Envia a requisição para o servidor
+        try {
+            const response = await fetch(`${apiUrl}/likes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_atividade: idAtividade,
+                    id_usuario: currentUser.id_usuario
+                })
+            });
+
+            if (!response.ok) {
+                // FALHA: Reverte a interface para o estado original
+                console.error("Erro ao processar curtida no servidor.");
+                
+                if (isCurrentlyLiked) {
+                    heartIcon.classList.remove('far');
+                    heartIcon.classList.add('fas', 'liked');
+                } else {
+                    heartIcon.classList.remove('fas', 'liked');
+                    heartIcon.classList.add('far');
+                }
+                likeCountSpan.textContent = originalLikes;
+            }
+
+        } catch (error) {
+            // ERRO DE REDE: Reverte a interface
+            console.error("Erro de comunicação com o servidor:", error);
+            
+            if (isCurrentlyLiked) {
+                heartIcon.classList.remove('far');
+                heartIcon.classList.add('fas', 'liked');
+            } else {
+                heartIcon.classList.remove('fas', 'liked');
+                heartIcon.classList.add('far');
+            }
+            likeCountSpan.textContent = originalLikes;
+        }
+    });
 
     // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---
 
@@ -189,11 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginForm.reset();
                 fetchAndRenderActivities(1, currentFilter);
             } else {
-                alert(data.erro || "Falha no login");
+                console.error(data.erro || "Falha no login");
             }
         } catch (error) {
             console.error("Erro no login:", error);
-            alert("Ocorreu um erro ao tentar fazer login.");
+            console.error("Ocorreu um erro ao tentar fazer login.");
         }
     });
 
@@ -208,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnAtividade.addEventListener('click', () => {
-        if(currentUser) {
+        if (currentUser) {
             const isFeedVisible = !feedSection.classList.contains('hidden');
             if (isFeedVisible) {
                 feedSection.classList.add('hidden');
@@ -224,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     createActivityForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if(!currentUser) {
-            alert("Você precisa estar logado para criar uma atividade.");
+        if (!currentUser) {
+            console.error("Você precisa estar logado para criar uma atividade.");
             return;
         }
 
@@ -244,8 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(atividade)
             });
 
-            if(response.ok) {
-                alert("Atividade criada com sucesso!");
+            if (response.ok) {
                 createActivityForm.reset();
                 feedSection.classList.remove('hidden');
                 createActivitySection.classList.add('hidden');
@@ -253,11 +343,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchAndRenderActivities(1, currentFilter);
             } else {
                 const data = await response.json();
-                alert(data.erro || "Falha ao criar atividade.");
+                console.error(data.erro || "Falha ao criar atividade.");
             }
         } catch (error) {
             console.error("Erro ao criar atividade:", error);
-            alert("Ocorreu um erro de comunicação ao criar a atividade.");
+            console.error("Ocorreu um erro de comunicação ao criar a atividade.");
         }
     });
 

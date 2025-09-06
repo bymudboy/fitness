@@ -194,3 +194,10 @@ body {
 
 /* Estilo de um botão quando está desabilitado. */
 .pagination button:disabled { background-color: #E9ECEF; color: #6C757D; cursor: not-allowed; border-color: #ccc; }
+
+/* /_css/style.css */
+
+/* Estilo para o ícone de coração quando está curtido */
+.like-btn .fa-heart.liked {
+    color: #ff335f; /* Cor vermelha para a curtida */
+}
